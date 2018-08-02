@@ -1,6 +1,7 @@
 import React from 'react'
 import PropTypes from 'prop-types'
 import classNames from 'classnames'
+import SplitPane from 'react-split-pane'
 import { defineMessages, intlShape } from 'react-intl'
 import { Checkbox, Dropdown, Menu, Icon } from 'semantic-ui-react'
 
@@ -147,6 +148,35 @@ function EvaluationLayout({
           <p>{description}</p>
         </div>
 
+        <div className="pane">
+          <SplitPane defaultSize="17rem" primary="second" split="vertical">
+            <div className="chart">{children}</div>
+
+            {activeVisualization !== CHART_TYPES.TABLE && (
+              <>
+                {QUESTION_GROUPS.WITH_POSSIBILITIES.includes(type) && (
+                  <div className="optionDisplay">
+                    <Possibilities
+                      data={data}
+                      questionOptions={options}
+                      questionType={type}
+                      showGraph={showGraph}
+                      showSolution={showSolution}
+                    />
+                  </div>
+                )}
+
+                {QUESTION_GROUPS.WITH_STATISTICS.includes(type) &&
+                  statistics && (
+                    <div className="statistics">
+                      <Statistics {...statistics} withBins={activeVisualization === 'HISTOGRAM'} />
+                    </div>
+                  )}
+              </>
+            )}
+          </SplitPane>
+        </div>
+
         <div className="info">
           <Info totalResponses={totalResponses} />
           {/* don't show 'show solution' check box for free and free range questions
@@ -170,181 +200,170 @@ function EvaluationLayout({
           />
         </div>
 
-        <div className="chart">{children}</div>
+        <style global jsx>{`
+          .Resizer {
+            background: #000;
+            opacity: 0.2;
+            z-index: 1;
+            -moz-box-sizing: border-box;
+            -webkit-box-sizing: border-box;
+            box-sizing: border-box;
+            -moz-background-clip: padding;
+            -webkit-background-clip: padding;
+            background-clip: padding-box;
+          }
 
-        {activeVisualization !== CHART_TYPES.TABLE && (
-          <>
-            {QUESTION_GROUPS.WITH_POSSIBILITIES.includes(type) && (
-              <div className="optionDisplay">
-                <Possibilities
-                  data={data}
-                  questionOptions={options}
-                  questionType={type}
-                  showGraph={showGraph}
-                  showSolution={showSolution}
-                />
-              </div>
-            )}
+          .Resizer:hover {
+            -webkit-transition: all 2s ease;
+            transition: all 2s ease;
+          }
 
-            {QUESTION_GROUPS.WITH_STATISTICS.includes(type) &&
-              statistics && (
-                <div className="statistics">
-                  <Statistics {...statistics} withBins={activeVisualization === 'HISTOGRAM'} />
-                </div>
-              )}
-          </>
-        )}
+          .Resizer.horizontal {
+            height: 11px;
+            margin: -5px 0;
+            border-top: 5px solid rgba(255, 255, 255, 0);
+            border-bottom: 5px solid rgba(255, 255, 255, 0);
+            cursor: row-resize;
+            width: 100%;
+          }
 
-        <style jsx>
-          {`
-            @import 'src/theme';
+          .Resizer.horizontal:hover {
+            border-top: 5px solid rgba(0, 0, 0, 0.5);
+            border-bottom: 5px solid rgba(0, 0, 0, 0.5);
+          }
 
-            .evaluationLayout {
-              @supports (grid-gap: 1rem) {
-                @include desktop-tablet-only {
-                  display: grid;
-                  height: 100vh;
-                  max-height: 100vh;
-                  max-width: 100vw;
+          .Resizer.vertical {
+            width: 11px;
+            margin: 0 -5px;
+            border-left: 5px solid rgba(255, 255, 255, 0);
+            border-right: 5px solid rgba(255, 255, 255, 0);
+            cursor: col-resize;
+          }
 
-                  grid-template-columns: auto 17rem;
-                  grid-template-rows:
-                    auto
-                    auto
-                    auto
-                    auto
-                    minmax(auto, 100%)
-                    auto;
-                  grid-template-areas:
-                    'instanceChooser instanceChooser'
-                    'questionDetails questionDetails'
-                    'graph optionDisplay'
-                    'graph statistics'
-                    'graph statistics'
-                    'info info';
+          .Resizer.vertical:hover {
+            border-left: 5px solid rgba(0, 0, 0, 0.5);
+            border-right: 5px solid rgba(0, 0, 0, 0.5);
+          }
+          .Resizer.disabled {
+            cursor: not-allowed;
+          }
+          .Resizer.disabled:hover {
+            border-color: transparent;
+          }
+        `}</style>
+        <style jsx>{`
+          @import 'src/theme';
 
-                  &.fullScreen {
-                    grid-template-areas:
-                      'instanceChooser instanceChooser'
-                      'questionDetails questionDetails'
-                      'graph graph'
-                      'graph graph'
-                      'graph graph'
-                      'info info';
-                  }
+          .evaluationLayout {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-height: 100vh;
+            max-width: 100vw;
 
-                  .instanceChooser {
-                    grid-area: instanceChooser;
-                    padding: 0.3rem;
-                    padding-bottom: 0;
-                    border-bottom: 1px solid $color-primary;
+            .instanceChooser,
+            .questionDetails,
+            .info {
+              flex: 0 0 auto;
+            }
 
-                    :global(.menu) {
-                      min-height: 0;
-                      margin-bottom: -1px;
-                      border-bottom: 1px solid $color-primary;
+            .pane {
+              flex: 1;
+            }
 
-                      :global(.item) {
-                        font-size: 0.7rem;
-                        padding: 0 0.6rem;
-                        margin: 0 0 -1px 0;
-                        height: 2rem;
-                      }
+            .instanceChooser {
+              padding: 0.3rem;
+              padding-bottom: 0;
+              border-bottom: 1px solid $color-primary;
 
-                      :global(.item.active) {
-                        border-color: $color-primary;
-                        background-color: $color-primary-background;
-                        border-bottom: 1px solid $color-primary-background;
-                      }
+              :global(.menu) {
+                min-height: 0;
+                margin-bottom: -1px;
+                border-bottom: 1px solid $color-primary;
 
-                      :global(.item.hoverable:hover) {
-                        background-color: $color-primary-10p;
-                      }
+                :global(.item) {
+                  font-size: 0.7rem;
+                  padding: 0 0.6rem;
+                  margin: 0 0 -1px 0;
+                  height: 2rem;
+                }
 
-                      :global(.item.executed) {
-                        color: grey;
-                      }
-                    }
-                  }
+                :global(.item.active) {
+                  border-color: $color-primary;
+                  background-color: $color-primary-background;
+                  border-bottom: 1px solid $color-primary-background;
+                }
 
-                  .instanceDropdown {
-                    font-size: 0.8rem;
-                  }
+                :global(.item.hoverable:hover) {
+                  background-color: $color-primary-10p;
+                }
 
-                  .questionDetails {
-                    grid-area: questionDetails;
-                    align-self: start;
-
-                    background-color: $color-primary-background;
-                    border-bottom: 1px solid $color-primary;
-                    padding: 1rem;
-                    text-align: left;
-
-                    h1 {
-                      font-size: 1.5rem;
-                      line-height: 1.5rem;
-                      margin-bottom: 0.5rem;
-                    }
-
-                    p {
-                      font-size: 1.2rem;
-                      font-weight: bold;
-                      line-height: 1.5rem;
-                    }
-                  }
-
-                  .chart {
-                    grid-area: graph;
-
-                    height: 100%;
-                    padding: 1rem 0.5rem 1rem 1rem;
-
-                    :global(> *) {
-                      border: 1px solid lightgrey;
-                    }
-                  }
-
-                  .chartType {
-                    padding: 1rem;
-                  }
-
-                  .optionDisplay,
-                  .statistics {
-                    padding: 1rem 1rem 1rem 0.5rem;
-                  }
-
-                  .info {
-                    grid-area: info;
-
-                    align-self: end;
-
-                    display: flex;
-                    flex-direction: row;
-                    align-items: center;
-                    justify-content: space-between;
-                    border-top: 1px solid lightgrey;
-                    background-color: #f3f3f3;
-                    padding: 0.5rem 1rem;
-                  }
-
-                  .optionDisplay {
-                    grid-area: optionDisplay;
-
-                    h2 {
-                      font-size: 1.5rem;
-                      line-height: 1.5rem;
-                      margin-bottom: 0.5rem;
-                    }
-                  }
-
-                  .statistics {
-                    grid-area: statistics;
-                  }
+                :global(.item.executed) {
+                  color: grey;
                 }
               }
             }
-          `}
-        </style>
+
+            .instanceDropdown {
+              font-size: 0.8rem;
+            }
+
+            .questionDetails {
+              background-color: $color-primary-background;
+              border-bottom: 1px solid $color-primary;
+              padding: 1rem;
+              text-align: left;
+
+              h1 {
+                font-size: 1.5rem;
+                line-height: 1.5rem;
+                margin-bottom: 0.5rem;
+              }
+
+              p {
+                font-size: 1.2rem;
+                font-weight: bold;
+                line-height: 1.5rem;
+              }
+            }
+
+            .chart {
+              height: 100%;
+              padding: 1rem 0.5rem 1rem 1rem;
+
+              :global(> *) {
+                border: 1px solid lightgrey;
+              }
+            }
+
+            .chartType {
+              padding: 1rem;
+            }
+
+            .optionDisplay,
+            .statistics {
+              padding: 1rem 1rem 1rem 0.5rem;
+            }
+
+            .info {
+              display: flex;
+              flex-direction: row;
+              align-items: center;
+              justify-content: space-between;
+              border-top: 1px solid lightgrey;
+              background-color: #f3f3f3;
+              padding: 0.5rem 1rem;
+            }
+
+            .optionDisplay {
+              h2 {
+                font-size: 1.5rem;
+                line-height: 1.5rem;
+                margin-bottom: 0.5rem;
+              }
+            }
+          }
+        `}</style>
       </div>
     </CommonLayout>
   )
